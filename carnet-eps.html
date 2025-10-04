@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Carnet EPS — Accueil · Création · Gestion</title>
+<style>
+:root{--bg:#f6f7fb;--ink:#0f172a;--muted:#6b7280;--card:#ffffff;--border:#e5e7eb;--primary:#1463ff;--ok:#16a34a;--warn:#f59e0b;--danger:#ef4444}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Ubuntu;color:var(--ink);background:linear-gradient(180deg,#eef2ff,transparent 300px) var(--bg)}
+.container{max-width:980px;margin:0 auto;padding:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.06);padding:20px}
+.center{display:grid;place-items:center;min-height:68vh;text-align:center}
+.h1{font-size:38px;font-weight:900;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 32px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:14px;border:1px solid transparent;background:var(--primary);color:#fff;font-weight:800;cursor:pointer;text-decoration:none}
+.btn.secondary{background:#fff;color:var(--ink);border-color:var(--border)}
+.btn.ok{background:var(--ok)}.btn.warn{background:var(--warn);color:#1f2937}.btn.danger{background:var(--danger)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label{font-weight:600}
+input[type=text],input[type=date],input[type=number],textarea,select{border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:inherit;background:#fff}
+textarea{min-height:120px;resize:vertical}
+hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.item{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff}
+.item h4{margin:0 0 8px 0}
+.tag{display:inline-block;padding:4px 8px;border:1px solid var(--border);border-radius:999px;background:#f8fafc;font-size:12px}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--border);border-radius:12px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
+thead th{position:sticky;top:0;background:#f8fafc}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.small{font-size:12px;color:#6b7280}
+.tabs{display:flex;gap:8px;margin:8px 0 12px}
+.tabbtn{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer}
+.tabbtn.active{background:#eef2ff;border-color:#c7d2fe}
+.footer{opacity:.8;font-size:12px;text-align:center;padding:24px}
+.notice{font-size:12px;color:#334155;background:#ecfeff;border:1px solid #bae6fd;padding:10px;border-radius:10px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- PAGE 1 — ACCUEIL -->
+  <section id="viewHome" class="center container">
+    <div>
+      <div class="h1">Carnet EPS</div>
+      <p class="sub">Créer mes classes · Appel · Notes · Mémos & Groupes — 100% local (RGPD)</p>
+      <div class="row" style="justify-content:center">
+        <a href="#/create" class="btn">➕ Créer mes classes</a>
+        <a href="#/manage" class="btn secondary">📚 Gérer mes classes</a>
+      </div>
+      <p class="small" style="margin-top:20px">Données stockées <b>localement</b> dans votre navigateur. Export/Archive disponible. Aucune transmission réseau.</p>
+    </div>
+  </section>
+
+  <!-- PAGE 2 — CRÉER MES CLASSES (import CSV/Pronote) -->
+  <section id="viewCreate" class="container hidden">
+    <div class="card">
+      <div class="topbar">
+        <h2 style="margin:0">Créer mes classes</h2>
+        <a href="#/manage" class="btn secondary">📚 Gérer mes classes</a>
+      </div>
+      <div class="notice">Astuce Pronote : exportez ou copiez la liste. Le parseur garde <b>uniquement</b> « Nom(s) Prénom » (1ère cellule ou avant le 1er TAB). Le dernier mot = prénom ; le reste = nom (noms composés OK).</div>
+      <hr>
+      <div class="row">
+        <label>Nom de la classe
+          <input type="text" id="newClassName" placeholder="ex : 4B" />
+        </label>
+        <button class="btn ok" id="btnCreateClass">Créer classe vide</button>
+      </div>
+      <hr>
+      <div class="row" style="align-items:center">
+        <label class="tag">Importer un fichier
+          <input type="file" id="fileInput" accept=".csv,.tsv,text/plain" style="margin-left:8px">
+        </label>
+        <span class="small">.csv / .tsv / .txt — encodage utf‑8</span>
+      </div>
+      <p class="small">ou collez ci-dessous :</p>
+      <textarea id="pasteArea" placeholder="Collez la liste Pronote ici…"></textarea>
+      <div class="row">
+        <button class="btn" id="btnImportPaste">Importer à partir du collage</button>
+        <span class="tag" id="importInfo">—</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 3 — GÉRER MES CLASSES -->
+  <section id="viewManage" class="container hidden">
+    <div class="topbar">
+      <h2 style="margin:0">Mes classes</h2>
+      <a href="#/create" class="btn">➕ Créer/Importer</a>
+    </div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="row">
+        <button class="btn secondary" id="btnExportAll">⬇️ Exporter tout (archive)</button>
+        <label class="tag">Restaurer archive
+          <input type="file" id="restoreInput" accept="application/json" style="margin-left:8px">
+        </label>
+      </div>
+      <button class="btn danger" id="btnWipe">🧹 Tout effacer (RGPD)</button>
+    </div>
+    <div id="classesList" class="list"></div>
+  </section>
+
+  <!-- PAGE 4 — DÉTAIL CLASSE (Appel · Notes · Mémo/Groupes) -->
+  <section id="viewClass" class="container hidden">
+    <div class="topbar">
+      <div>
+        <h2 id="classTitle" style="margin:0">Classe</h2>
+        <div class="small" id="classMeta">—</div>
+      </div>
+      <div class="row">
+        <a href="#/manage" class="btn secondary">← Mes classes</a>
+        <button class="btn warn" id="btnRenameClass">✏️ Renommer</button>
+        <button class="btn danger" id="btnDeleteClass">🗑️ Supprimer</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tabbtn active" data-tab="appel">Appel</button>
+      <button class="tabbtn" data-tab="notes">Notes</button>
+      <button class="tabbtn" data-tab="memo">Mémo / Groupes</button>
+    </div>
+
+    <div id="tab_appel" class="card">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <div class="row">
+          <label>Date
+            <input type="date" id="appelDate">
+          </label>
+          <button class="btn ok" id="btnAllP">Tous P</button>
+          <button class="btn danger" id="btnAllA">Tous A</button>
+          <button class="btn secondary" id="btnAllClear">Effacer</button>
+        </div>
+        <button class="btn secondary" id="btnExportToday">⬇️ Export CSV (séance)</button>
+      </div>
+      <div class="tablewrap" style="margin-top:10px">
+        <table id="appelTable">
+          <thead><tr><th>Nom</th><th>Prénom</th><th>Présence</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab_notes" class="card hidden">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <div class="row">
+          <span class="tag" id="avgTag">Moy. —</span>
+        </div>
+        <button class="btn secondary" id="btnExportNotes">⬇️ Export CSV (notes)</button>
+      </div>
+      <div class="tablewrap" style="margin-top:10px">
+        <table id="notesTable">
+          <thead><tr><th>Nom</th><th>Prénom</th><th>Note /20</th><th>Remarque</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab_memo" class="card hidden">
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <div class="row">
+          <button class="btn" id="btnGroups4">🧩 Groupes de 4 (A→Z)</button>
+          <button class="btn secondary" id="btnExportGroups">⬇️ Export groupes</button>
+        </div>
+        <span class="small" id="groupsInfo">—</span>
+      </div>
+      <div class="tablewrap" style="margin-top:10px">
+        <table id="memoTable">
+          <thead><tr><th>#</th><th>Nom</th><th>Prénom</th><th>Épreuve / Info</th><th>Valeur</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>\n    </div>\n  </section>\n\n  <div class=\"footer\">© Carnet EPS — Données locales (LocalStorage). Export/Import JSON. Conforme à l’usage RGPD (pas de transmission de données, droit à l’effacement via « Tout effacer »).</div>\n</div>\n\n<script>\n(function(){\n  const LS_KEY = 'carnet_eps_v1';\n  const state = load() || { classes: {}, order: [] };\n  save();\n\n  const routes = { '#/': showHome, '#/create': showCreate, '#/manage': showManage };\n  window.addEventListener('hashchange', onRoute); onRoute();\n  function onRoute(){ const hash = location.hash || '#/'; if(hash.startsWith('#/class/')){ showClass(decodeURIComponent(hash.split('/')[2]||'')); return;} (routes[hash]||showHome)(); }\n  function hideAll(){ qs('#viewHome').classList.add('hidden'); qs('#viewCreate').classList.add('hidden'); qs('#viewManage').classList.add('hidden'); qs('#viewClass').classList.add('hidden'); }\n\n  function qs(s){ return document.querySelector(s); }\n  function ce(tag, html=''){ const el=document.createElement(tag); el.innerHTML=html; return el; }\n  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }\n  function load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); } catch(e){ return null; } }\n  function ensureClass(name){ if(!state.classes[name]){ state.classes[name] = { students: [], notes:{}, presences:{}, memo:[] }; state.order.push(name); save(); } }\n  function sortByName(a,b){ return (a.nom+\" \"+a.prenom).localeCompare(b.nom+\" \"+b.prenom,'fr',{sensitivity:'base'}); }\n  function esc(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }\n  function rid(){ try{ return crypto.randomUUID(); } catch{ return 'id_'+Math.random().toString(36).slice(2);} }\n\n  function showHome(){ hideAll(); qs('#viewHome').classList.remove('hidden'); }\n\n  function showCreate(){\n    hideAll(); qs('#viewCreate').classList.remove('hidden');\n    qs('#btnCreateClass').onclick = ()=>{ const name=(qs('#newClassName').value.trim()||'Nouvelle classe'); ensureClass(name); location.hash = '#/class/'+encodeURIComponent(name); };\n    qs('#btnImportPaste').onclick = ()=>{ const name=(qs('#newClassName').value.trim()||'Nouvelle classe'); ensureClass(name); const text=qs('#pasteArea').value.trim(); if(!text){ alert('Collez votre liste.'); return; } const added=addFromText(name,text); qs('#importInfo').textContent = `${added} élève${added>1?'s':''} ajouté${added>1?'s':''} à ${name}.`; location.hash = '#/class/'+encodeURIComponent(name); };\n    const file=qs('#fileInput'); file.onchange=()=>{ const f=file.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const name=(qs('#newClassName').value.trim()||f.name.replace(/\\..+$/, '')); ensureClass(name); const added=addFromText(name,String(r.result||'')); qs('#importInfo').textContent = `${added} élève${added>1?'s':''} ajouté${added>1?'s':''} à ${name} (fichier).`; location.hash = '#/class/'+encodeURIComponent(name); }; r.readAsText(f,'utf-8'); file.value=''; };\n  }\n\n  function addFromText(className, text){\n    const cls = state.classes[className]; let added=0;\n    text = String(text||'').replace(/^\\uFEFF/, '');\n    const lines = text.split(/\\r?\\n/).map(l=>l.trim()).filter(Boolean);\n    for(const raw of lines){\n      let firstCell=''; const tab = raw.indexOf('\\t');\n      if(tab>-1) firstCell = raw.slice(0,tab).trim(); else {\n        const si = raw.indexOf(';'), ci = raw.indexOf(','); let pos=-1; if(si>-1 && ci>-1) pos=Math.min(si,ci); else pos=(si>-1?si:(ci>-1?ci:-1)); firstCell = (pos>-1?raw.slice(0,pos):raw).trim();\n      }\n      if(!firstCell) continue;\n      const tokens = firstCell.split(/\\s+/).filter(Boolean);\n      if(tokens.length<2) continue; const prenom = tokens.pop(); const nom = tokens.join(' ');\n      if(!nom || !prenom) continue;\n      cls.students.push({ id: rid(), nom, prenom }); added++;\n    }\n    cls.students.sort(sortByName); save(); return added;\n  }\n\n  function showManage(){\n    hideAll(); qs('#viewManage').classList.remove('hidden');\n    const wrap = qs('#classesList'); wrap.innerHTML='';\n    state.order = state.order.filter(n=>state.classes[n]);\n    for(const name of state.order){\n      const cls = state.classes[name];\n      const card = ce('div',`<div class=\"item\"><h4>${esc(name)}</h4>\n        <div class=\"row\" style=\"justify-content:space-between;align-items:center\">\n          <span class=\"tag\">${cls.students.length} élève${cls.students.length>1?'s':''}</span>\n          <div class=\"row\">\n            <a class=\"btn secondary\" href=\"#/class/${encodeURIComponent(name)}\">Ouvrir</a>\n            <button class=\"btn warn\" data-k=\"rename\">Renommer</button>\n            <button class=\"btn danger\" data-k=\"delete\">Supprimer</button>\n          </div>\n        </div></div>`);\n      wrap.appendChild(card);\n      card.querySelector('[data-k=\"rename\"]').onclick = ()=>{ const nv=prompt('Nouveau nom', name); if(!nv || nv===name) return; if(state.classes[nv]){ alert('Ce nom existe déjà.'); return; } state.classes[nv]=cls; delete state.classes[name]; state.order = state.order.map(x=>x===name?nv:x); save(); showManage(); };\n      card.querySelector('[data-k=\"delete\"]').onclick = ()=>{ if(!confirm(`Supprimer ${name} ?`)) return; delete state.classes[name]; state.order = state.order.filter(x=>x!==name); save(); showManage(); };\n    }\n    qs('#btnExportAll').onclick = ()=>{ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='CarnetEPS_Archive.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500) };\n    qs('#restoreInput').onchange = ()=>{ const f=qs('#restoreInput').files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(String(r.result||'{}')); if(data && data.classes){ localStorage.setItem(LS_KEY, JSON.stringify(data)); location.reload(); } else alert('Archive invalide'); }catch(e){ alert('JSON invalide'); } }; r.readAsText(f,'utf-8'); qs('#restoreInput').value=''; };\n    qs('#btnWipe').onclick = ()=>{ if(confirm('Supprimer TOUTES les données locales ?')){ localStorage.removeItem(LS_KEY); location.hash='#/'; location.reload(); } };\n  }\n\n  let currentClass = '';\n  function showClass(name){\n    ensureClass(name); currentClass=name;\n    hideAll(); qs('#viewClass').classList.remove('hidden');\n    qs('#classTitle').textContent = name;\n    const cls = state.classes[name];\n    qs('#classMeta').textContent = `${cls.students.length} élève${cls.students.length>1?'s':''}`;\n\n    document.querySelectorAll('.tabbtn').forEach(b=>{ b.classList.remove('active'); });\n    document.querySelector('[data-tab=\"appel\"]').classList.add('active');\n    qs('#tab_appel').classList.remove('hidden'); qs('#tab_notes').classList.add('hidden'); qs('#tab_memo').classList.add('hidden');\n\n    document.querySelector('[data-tab=\"appel\"]').onclick = ()=>switchTab('appel');\n    document.querySelector('[data-tab=\"notes\"]').onclick = ()=>switchTab('notes');\n    document.querySelector('[data-tab=\"memo\"]').onclick = ()=>switchTab('memo');\n\n    qs('#appelDate').valueAsDate = new Date();\n    renderAppel();\n    qs('#btnAllP').onclick = ()=> setPresenceAll('P');\n    qs('#btnAllA').onclick = ()=> setPresenceAll('A');\n    qs('#btnAllClear').onclick = ()=> setPresenceAll('');\n    qs('#btnExportToday').onclick = exportAppelCSV;\n\n    renderNotes();\n    qs('#btnExportNotes').onclick = exportNotesCSV;\n\n    renderMemo();\n    qs('#btnGroups4').onclick = ()=> makeGroupsAlpha(4);\n    qs('#btnExportGroups').onclick = exportGroupsCSV;\n\n    qs('#btnRenameClass').onclick = ()=>{ const nv = prompt('Nouveau nom de classe', name); if(!nv || nv===name) return; if(state.classes[nv]){ alert('Ce nom existe déjà.'); return; } state.classes[nv]=state.classes[name]; delete state.classes[name]; state.order = state.order.map(x=>x===name?nv:x); save(); location.hash = '#/class/'+encodeURIComponent(nv); };\n    qs('#btnDeleteClass').onclick = ()=>{ if(!confirm(`Supprimer la classe ${name} ?`)) return; delete state.classes[name]; state.order = state.order.filter(x=>x!==name); save(); location.hash = '#/manage'; };\n  }\n\n  function switchTab(id){ document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active')); document.querySelector(`[data-tab=\"${id}\"]`).classList.add('active'); qs('#tab_appel').classList.add('hidden'); qs('#tab_notes').classList.add('hidden'); qs('#tab_memo').classList.add('hidden'); qs('#tab_'+id).classList.remove('hidden'); }\n\n  function renderAppel(){ const tbody = qs('#appelTable tbody'); tbody.innerHTML=''; const cls = state.classes[currentClass]; cls.students.sort(sortByName); const date = qs('#appelDate').value || new Date().toISOString().slice(0,10); const pres = cls.presences[date] || {}; for(const s of cls.students){ const tr=document.createElement('tr'); tr.innerHTML = `<td>${esc(s.nom)}</td><td>${esc(s.prenom)}</td><td><select data-id=\"${s.id}\"><option value=\"\"></option><option value=\"P\">P</option><option value=\"A\">A</option><option value=\"R\">R</option></select></td>`; tbody.appendChild(tr); tr.querySelector('select').value = pres[s.id]||''; tr.querySelector('select').onchange = (e)=>{ const v=e.target.value; cls.presences[date]=cls.presences[date]||{}; cls.presences[date][s.id]=v; save(); }; } }\n  function setPresenceAll(v){ const cls = state.classes[currentClass]; const date = qs('#appelDate').value || new Date().toISOString().slice(0,10); cls.presences[date]=cls.presences[date]||{}; for(const s of cls.students){ cls.presences[date][s.id]=v; } save(); renderAppel(); }\n  function exportAppelCSV(){ const cls = state.classes[currentClass]; const date = qs('#appelDate').value || new Date().toISOString().slice(0,10); const rows = [[\"Nom\",\"Prenom\",\"Presence \"+date]]; const pres = cls.presences[date]||{}; for(const s of cls.students){ rows.push([s.nom, s.prenom, pres[s.id]||'']); } downloadCSV(`Appel_${currentClass}_${date}.csv`, rows); }\n\n  function renderNotes(){ const tbody = qs('#notesTable tbody'); tbody.innerHTML=''; const cls = state.classes[currentClass]; const notes = cls.notes; let sum=0, n=0; cls.students.sort(sortByName); for(const s of cls.students){ const tr=document.createElement('tr'); const val=(typeof notes[s.id]==='number'?notes[s.id]:''); tr.innerHTML = `<td>${esc(s.nom)}</td><td>${esc(s.prenom)}</td><td><input type=\"number\" min=\"0\" max=\"20\" step=\"0.5\" value=\"${val}\" data-id=\"${s.id}\"/></td><td><input type=\"text\" data-k=\"rem\" data-id=\"${s.id}\" placeholder=\"Remarque…\" /></td>`; tbody.appendChild(tr); tr.querySelector('input[type=\"number\"]').oninput=(e)=>{ const v=e.target.value; notes[s.id]= v===''?undefined:Number(v); save(); renderNotes(); }; const r = cls.memo.find(m=>m.sid===s.id && m.key==='remarque'); tr.querySelector('input[data-k=\"rem\"]').value = r?.val||''; tr.querySelector('input[data-k=\"rem\"]').oninput=(e)=>{ upsertMemo(s.id,'remarque', e.target.value); }; if(typeof notes[s.id]==='number'){ sum+=notes[s.id]; n++; } } qs('#avgTag').textContent = n?`Moy. ${(sum/n).toFixed(2)}/20`:'Moy. —'; }\n\n  function renderMemo(){ const tbody = qs('#memoTable tbody'); tbody.innerHTML=''; const cls = state.classes[currentClass]; cls.students.sort(sortByName); let i=1; for(const s of cls.students){ const tr=document.createElement('tr'); const rec = cls.memo.find(m=>m.sid===s.id && m.key==='memo')?.val || ''; tr.innerHTML = `<td>${i++}</td><td>${esc(s.nom)}</td><td>${esc(s.prenom)}</td><td><input type=\"text\" data-k=\"type\" data-id=\"${s.id}\" placeholder=\"(ex. Montée/Descente TT)\" value=\"${esc(rec.split('|')[0]||'')}\"/></td><td><input type=\"text\" data-k=\"val\" data-id=\"${s.id}\" placeholder=\"(ex. classement, temps, tours)\" value=\"${esc(rec.split('|')[1]||'')}\"/></td>`; tbody.appendChild(tr); tr.querySelector('input[data-k=\"type\"]').oninput=(e)=>{ const v=e.target.value; const other=tr.querySelector('input[data-k=\"val\"]').value; upsertMemo(s.id,'memo', `${v}|${other}`); }; tr.querySelector('input[data-k=\"val\"]').oninput=(e)=>{ const v=e.target.value; const other=tr.querySelector('input[data-k=\"type\"]').value; upsertMemo(s.id,'memo', `${other}|${v}`); }; } }\n  function upsertMemo(sid,key,val){ const cls = state.classes[currentClass]; const i=cls.memo.findIndex(m=>m.sid===sid && m.key===key); if(i>-1) cls.memo[i].val=val; else cls.memo.push({sid,key,val}); save(); }\n  function makeGroupsAlpha(size){ const cls = state.classes[currentClass]; const arr=[...cls.students].sort(sortByName); const groups=[]; for(let i=0;i<arr.length;i+=size) groups.push(arr.slice(i,i+size)); qs('#groupsInfo').textContent = `${groups.length} groupe${groups.length>1?'s':''} (${size} max)`; cls.memo = cls.memo.filter(m=>m.key!=='group'); groups.forEach((g,i)=> g.forEach(s=> cls.memo.push({sid:s.id,key:'group',val:'G'+(i+1)})) ); save(); renderMemo(); }\n  function exportGroupsCSV(){ const cls = state.classes[currentClass]; const rows=[[\"Groupe\",\"Nom\",\"Prenom\"]]; const groupsBySid = Object.fromEntries(cls.memo.filter(m=>m.key==='group').map(m=>[m.sid,m.val])); cls.students.forEach(s=> rows.push([groupsBySid[s.id]||'', s.nom, s.prenom])); downloadCSV(`Groupes_${currentClass}.csv`, rows); }\n\n  function downloadCSV(name, rows){ const csv = rows.map(r=> r.map(v=>`\"${String(v??'').replaceAll('\"','\"\"')}\"`).join(';')).join('\\n'); const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }\n})();\n</script>\n</body>\n</html>\n
