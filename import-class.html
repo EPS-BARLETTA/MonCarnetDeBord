@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Importer une classe — MonCarnetDeBord</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--bg:#f7f9fc;--card:#fff;--muted:#6b7280;--primary:#2563eb;--border:#e6edf6}
+    body{font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(180deg,#f3f7fb,white);padding:24px;min-height:100vh}
+    .container{max-width:1000px;margin:0 auto}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    h1{font-size:1.25rem;margin:0}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,24,40,0.03)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1;min-width:220px}
+    label{display:flex;align-items:center;gap:8px;font-size:0.95rem;color:var(--muted)}
+    input[type="text"], select, textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #d6e4ff;background:transparent}
+    textarea{min-height:110px;font-family:monospace}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button{padding:8px 12px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:white;cursor:pointer}
+    button.primary{background:var(--primary);color:white;border-color:rgba(0,0,0,0.08)}
+    button.ghost{background:transparent;border:1px dashed #cbd5e1}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:0.95rem}
+    th,td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left}
+    th{background:#fbfdff;position:sticky;top:0}
+    .small{font-size:0.9rem;color:var(--muted)}
+    .message{margin-top:10px}
+    .success{color:green}.error{color:#b91c1c}
+    .mapping{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+    .mapping select{width:180px}
+    .saved-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .badge{background:#eef2ff;padding:6px 8px;border-radius:999px;font-size:0.9rem}
+    .footer{margin-top:18px;font-size:0.85rem;color:var(--muted)}
+  </style>
+
+  <!-- Librairies CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Importer une classe — MonCarnetDeBord</h1>
+      <div class="small">Import CSV / Excel • Mapping automatique • Sauvegarde locale</div>
+    </header>
+
+    <section class="card">
+      <strong>1) Source</strong>
+      <div class="row" style="margin-top:8px">
+        <div class="col">
+          <div class="small">Fichier (.csv, .xls, .xlsx)</div>
+          <input id="fileInput" type="file" accept=".csv, .xls, .xlsx" />
+          <div class="controls">
+            <label><input id="hasHeaderFile" type="checkbox" checked /> Première ligne = en-tête</label>
+            <label>Délimiteur: <input id="delimiterFile" type="text" value="," style="width:54px" /></label>
+            <button id="parseFileBtn">Lire le fichier</button>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="small">Ou coller du texte / CSV</div>
+          <textarea id="pasteArea" placeholder="Copier-coller un CSV (ex: Nom,Prénom,email) ou une liste simple"></textarea>
+          <div class="controls">
+            <label><input id="hasHeaderPaste" type="checkbox" checked /> Première ligne = en-tête</label>
+            <label>Délimiteur: <input id="delimiterPaste" type="text" value="," style="width:54px" /></label>
+            <button id="parsePasteBtn">Lire le texte</button>
+            <button id="exampleBtn" class="ghost">Charger exemple</button>
+          </div>
+        </div>
+      </div>
+      <div id="sourceMsg" class="message"></div>
+    </section>
+
+    <section class="card">
+      <strong>2) Mapping des colonnes</strong>
+      <div class="small" style="margin-top:6px">Choisis quelles colonnes correspondent à Nom / Prénom / Email. Si tu n'as qu'une colonne "Nom Prénom", utilise "Split`"</div>
+      <div id="mappingArea" class="mapping"></div>
+      <div style="margin-top:8px">
+        <label><input id="trimFields" type="checkbox" checked /> Nettoyage: trim des champs</label>
+        <label><input id="removeDuplicates" type="checkbox" checked /> Supprimer doublons (par email si présent, sinon par Nom+Prénom)</label>
+        <button id="applyMappingBtn" class="primary">Appliquer le mapping & nettoyer</button>
+      </div>
+      <div id="mappingMsg" class="message"></div>
+    </section>
+
+    <section class="card">
+      <strong>3) Prévisualisation (données nettoyées)</strong>
+      <div id="previewInfo" class="small">Aucune donnée chargée.</div>
+      <div id="preview"></div>
+
+      <div class="controls" style="margin-top:8px">
+        <input id="className" type="text" placeholder="Nom de la classe pour la sauvegarde (ex: 6A - 2026)" style="width:260px" />
+        <button id="importBtn" class="primary" disabled>Enregistrer la classe (local)</button>
+        <button id="exportBtn">Exporter CSV</button>
+        <button id="clearBtn">Effacer stockage</button>
+      </div>
+
+      <div class="small" style="margin-top:8px">Classes sauvegardées localement :</div>
+      <div id="savedList" class="saved-list"></div>
+      <div id="previewMsg" class="message"></div>
+    </section>
+
+    <div class="footer">
+      Ouvrir ce fichier directement dans ton navigateur pour tester. Si tu veux que je fasse la PR vers le repo, dis‑le et je peux préparer le commit.
+    </div>
+  </div>
+
+  <script>
+    // Etat
+    let currentRows = []; // tableau d'objets bruts après parsing
+    let cleanedRows = []; // tableau d'objets {nom,prenom,email,...}
+    let headers = [];
+
+    // Helpers: message
+    function setMsg(elId, txt, kind) {
+      const el = document.getElementById(elId);
+      el.textContent = txt || '';
+      el.className = kind === 'error' ? 'message error' : kind === 'success' ? 'message success' : 'message';
+    }
+
+    // Render preview
+    function renderPreview(rows = cleanedRows) {
+      const preview = document.getElementById('preview');
+      const info = document.getElementById('previewInfo');
+      preview.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        info.textContent = 'Aucune donnée chargée.';
+        document.getElementById('importBtn').disabled = true;
+        return;
+      }
+      const cols = Object.keys(rows[0]);
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      cols.forEach(c => {
+        const th = document.createElement('th'); th.textContent = c; trh.appendChild(th);
+      });
+      thead.appendChild(trh); table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      const max = Math.min(rows.length, 200);
+      for (let i=0;i<max;i++){
+        const tr = document.createElement('tr');
+        cols.forEach(c=>{
+          const td = document.createElement('td');
+          td.textContent = rows[i][c] ?? '';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody); preview.appendChild(table);
+      info.textContent = `${rows.length} ligne(s) (affichage ${Math.min(rows.length, max)}).`;
+      document.getElementById('importBtn').disabled = false;
+    }
+
+    // CSV parsing helper (PapaParse)
+    function parseCSVText(text, delimiter=',', header=true) {
+      return new Promise((resolve, reject)=>{
+        Papa.parse(text, {
+          delimiter: delimiter || ',',
+          header: !!header,
+          skipEmptyLines: true,
+          complete: (res)=> resolve(res),
+          error: (err)=> reject(err)
+        });
+      });
+    }
+
+    // Excel using SheetJS
+    function parseExcelFile(file, header=true) {
+      return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, {type:'array'});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const opts = {header: header ? 0 : 1, defval: ''};
+            const json = XLSX.utils.sheet_to_json(ws, opts);
+            if (header) return resolve({ data: json, meta: {fields: Object.keys(json[0] || {})} });
+            // header=false -> convert arrays to objects with generic headers
+            const arrays = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+            const maxCols = Math.max(...arrays.map(r => (r && r.length) || 0));
+            const genHeaders = [];
+            for (let i=0;i<maxCols;i++) genHeaders.push('Col' + (i+1));
+            const rows = arrays.map(arr=>{
+              const o={};
+              for (let i=0;i<genHeaders.length;i++) o[genHeaders[i] = arr[i] ?? '';
+              return o;
+            });
+            resolve({ data: rows, meta: {fields: genHeaders} });
+          } catch (err) { reject(err); }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // Populate mapping selects
+    function showMappingOptions(fields) {
+      const area = document.getElementById('mappingArea');
+      area.innerHTML = '';
+      if (!fields || fields.length===0) {
+        area.textContent = 'Aucune colonne détectée.';
+        return;
+      }
+      headers = fields.slice();
+      // Create selectors for Nom / Prénom / Email / FullNameToSplit
+      const createSel = (labelText, id) => {
+        const wrapper = document.createElement('div');
+        wrapper.style.display='flex'; wrapper.style.flexDirection='column';
+        const lab = document.createElement('label'); lab.textContent = labelText;
+        const sel = document.createElement('select'); sel.id = id;
+        const noneOpt = document.createElement('option'); noneOpt.value=''; noneOpt.textContent='— (aucun) —';
+        sel.appendChild(noneOpt);
+        fields.forEach(f=>{
+          const o = document.createElement('option'); o.value = f; o.textContent = f; sel.appendChild(o);
+        });
+        wrapper.appendChild(lab); wrapper.appendChild(sel);
+        return wrapper;
+      };
+      area.appendChild(createSel('Nom (colonne)', 'mapNom'));
+      area.appendChild(createSel('Prénom (colonne)', 'mapPrenom'));
+      area.appendChild(createSel('Email (colonne)', 'mapEmail'));
+      // option to split a column
+      const splitWrap = document.createElement('div');
+      splitWrap.style.display='flex'; splitWrap.style.flexDirection='column';
+      const splitLab = document.createElement('label'); splitLab.textContent = 'Si Nom+Prénom dans une seule colonne, choisir ici pour split';
+      const splitSel = document.createElement('select'); splitSel.id='mapSplit';
+      const noOpt = document.createElement('option'); noOpt.value=''; noOpt.textContent='— (aucun) —';
+      splitSel.appendChild(noOpt);
+      fields.forEach(f=>{
+        const o = document.createElement('option'); o.value = f; o.textContent = f; splitSel.appendChild(o);
+      });
+      splitWrap.appendChild(splitLab); splitWrap.appendChild(splitSel);
+      area.appendChild(splitWrap);
+
+      // Attempt auto-mapping heuristics
+      autoMap(fields);
+    }
+
+    function autoMap(fields) {
+      const lower = fields.map(f => f && f.toLowerCase());
+      const mapNom = document.getElementById('mapNom');
+      const mapPrenom = document.getElementById('mapPrenom');
+      const mapEmail = document.getElementById('mapEmail');
+      const mapSplit = document.getElementById('mapSplit');
+      // heuristics
+      const findOne = (candidates) => {
+        for (const cand of candidates) {
+          const i = lower.findIndex(l => l.includes(cand));
+          if (i >= 0) return fields[i];
+        }
+        return '';
+      };
+      mapEmail.value = findOne(['email','mail']);
+      mapPrenom.value = findOne(['prenom','given','first']);
+      mapNom.value = findOne(['nom','name','last','surname','fullname'].filter(Boolean));
+      // if no prénom/nom but a 'nom prénom' column exists:
+      if ((!mapNom.value || !mapPrenom.value) && !mapSplit.value) {
+        const nameCol = findOne(['nomprenom','nom_prenom','nom prenom','name']);
+        if (nameCol) mapSplit.value = nameCol;
+      }
+    }
+
+    // Clean and map rows
+    function applyMapping() {
+      setMsg('mappingMsg','');
+      if (!currentRows || currentRows.length===0) { setMsg('mappingMsg','Aucune donnée à mapper.','error'); return; }
+      const mapNom = document.getElementById('mapNom').value;
+      const mapPrenom = document.getElementById('mapPrenom').value;
+      const mapEmail = document.getElementById('mapEmail').value;
+      const mapSplit = document.getElementById('mapSplit').value;
+      const trim = document.getElementById('trimFields').checked;
+      const removeDup = document.getElementById('removeDuplicates').checked;
+
+      let rows = currentRows.map(r => ({...r})); // copy
+
+      // transform each row to object {Nom,Prenom,Email, ...others}
+      const out = [];
+      for (const r of rows) {
+        let nom='', prenom='', email='';
+        if (mapSplit) {
+          const val = r[mapSplit] ?? '';
+          // simple split: last token = nom, rest = prenom (common FR pattern: "Prénom NOM" or "NOM Prénom" ambiguous)
+          const tokens = (''+val).trim().split(/\s+/).filter(Boolean);
+          if (tokens.length === 0) { prenom=''; nom=''; }
+          else if (tokens.length === 1) { prenom=tokens[0]; nom=''; }
+          else {
+            // Heuristic: if split column is "Nom Prénom" (often "DUPONT Jean"), we try to detect uppercase surname:
+            if (/^[A-ZÉÈÀÙÂÊÎÔÛÇ0-9-]+$/.test(tokens[0])) {
+              // first token uppercase -> surname first
+              nom = tokens[0]; prenom = tokens.slice(1).join(' ');
+            } else {
+              // otherwise assume last token is surname
+              nom = tokens[tokens.length-1]; prenom = tokens.slice(0,tokens.length-1).join(' ');
+            }
+          }
+        }
+        if (mapNom && (r[mapNom] !== undefined)) nom = r[mapNom];
+        if (mapPrenom && (r[mapPrenom] !== undefined)) prenom = r[mapPrenom];
+        if (mapEmail && (r[mapEmail] !== undefined)) email = r[mapEmail];
+
+        if (trim) { nom = (nom||'').toString().trim(); prenom = (prenom||'').toString().trim(); email = (email||'').toString().trim(); }
+
+        // additional: parse fields if email included in name token (e.g. "Jean DUPONT <jean@example.com>")
+        if (!email) {
+          const maybe = `${nom} ${prenom}`.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+          if (maybe) email = maybe[0];
+        }
+
+        // reconstruct normalized object
+        const obj = {
+          Nom: nom || '',
+          Prenom: prenom || '',
+          Email: email || ''
+        };
+        // include others if needed
+        out.push(obj);
+      }
+
+      // remove duplicates
+      if (removeDup) {
+        const seen = new Set();
+        const unique = [];
+        for (const o of out) {
+          const key = (o.Email && o.Email.length>0) ? 'email::' + o.Email.toLowerCase() : ('name::' + (o.Nom+'|'+o.Prenom).toLowerCase());
+          if (!seen.has(key)) { seen.add(key); unique.push(o); }
+        }
+        cleanedRows = unique;
+      } else cleanedRows = out;
+
+      setMsg('mappingMsg', `Mapping appliqué — ${cleanedRows.length} ligne(s) prêtes.`, 'success');
+      renderPreview();
+    }
+
+    // FILE handling
+    document.getElementById('parseFileBtn').addEventListener('click', async ()=>{
+      setMsg('sourceMsg','');
+      const fi = document.getElementById('fileInput');
+      if (!fi.files || fi.files.length===0) { setMsg('sourceMsg','Aucun fichier sélectionné','error'); return; }
+      const file = fi.files[0];
+      const name = (file.name || '').toLowerCase();
+      const header = document.getElementById('hasHeaderFile').checked;
+      const delimiter = document.getElementById('delimiterFile').value || ',';
+      try {
+        if (name.endsWith('.csv') || name.endsWith('.txt')) {
+          const text = await file.text();
+          const res = await parseCSVText(text, delimiter, header);
+          currentRows = res.data || [];
+          const fields = res.meta && res.meta.fields ? res.meta.fields : (currentRows[0] ? Object.keys(currentRows[0]) : []);
+          showMappingOptions(fields);
+        } else if (name.endsWith('.xls') || name.endsWith('.xlsx')) {
+          const res = await parseExcelFile(file, header);
+          currentRows = res.data || [];
+          const fields = res.meta && res.meta.fields ? res.meta.fields : (currentRows[0] ? Object.keys(currentRows[0]) : []);
+          showMappingOptions(fields);
+        } else {
+          setMsg('sourceMsg','Type de fichier non supporté. Utilisez .csv, .xls, .xlsx','error'); return;
+        }
+        setMsg('sourceMsg','Fichier lu avec succès. Vérifie le mapping.', 'success');
+        // quick auto-apply mapping (optional)
+      } catch (err) {
+        console.error(err);
+        setMsg('sourceMsg','Erreur lors de la lecture: ' + (err.message || err), 'error');
+      }
+    });
+
+    // PASTE handling
+    document.getElementById('parsePasteBtn').addEventListener('click', async ()=>{
+      setMsg('sourceMsg','');
+      const text = document.getElementById('pasteArea').value.trim();
+      if (!text) { setMsg('sourceMsg','Aucun texte collé.','error'); return; }
+      const header = document.getElementById('hasHeaderPaste').checked;
+      const delimiter = document.getElementById('delimiterPaste').value || ',';
+      try {
+        const res = await parseCSVText(text, delimiter, header);
+        // If header=false, Papa returns arrays; convert to objects with generic headers
+        if (!header && Array.isArray(res.data) && res.data.length) {
+          const arrays = res.data;
+          const maxCols = Math.max(...arrays.map(r=> (r && r.length) || 0));
+          const gen = [];
+          for (let i=0;i<maxCols;i++) gen.push('Col'+(i+1));
+          currentRows = arrays.map(arr=>{
+            const o={};
+            for (let i=0;i<gen.length;i++) o[gen[i]] = arr[i] ?? '';
+            return o;
+          });
+          showMappingOptions(gen);
+        } else {
+          currentRows = res.data || [];
+          const fields = res.meta && res.meta.fields ? res.meta.fields : (currentRows[0] ? Object.keys(currentRows[0]) : []);
+          showMappingOptions(fields);
+        }
+        setMsg('sourceMsg','Texte analysé. Vérifie le mapping.', 'success');
+      } catch (err) {
+        console.error(err);
+        setMsg('sourceMsg','Erreur lors du parsing: '+ err.message, 'error');
+      }
+    });
+
+    // example data
+    document.getElementById('exampleBtn').addEventListener('click', ()=>{
+      const sample = `Nom,Prénom,Email
+DUPONT,Jean,jean.dupont@example.com
+MARTIN,Élodie,elodie.martin@example.com
+LEROY,Paul,paul.leroy@example.com
+DURAND,Marie,
+DUPONT,Jean,jean.dupont@example.com`;
+      document.getElementById('pasteArea').value = sample;
+      document.getElementById('hasHeaderPaste').checked = true;
+      document.getElementById('parsePasteBtn').click();
+    });
+
+    // apply mapping
+    document.getElementById('applyMappingBtn').addEventListener('click', applyMapping);
+
+    // storage helpers
+    const STORAGE_KEY = 'MonCarnetDeBord_classes_v1';
+    function loadSavedList() {
+      const el = document.getElementById('savedList');
+      el.innerHTML = '';
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { el.textContent = 'Aucune classe sauvegardée.'; return; }
+      try {
+        const data = JSON.parse(raw) || [];
+        if (data.length===0) { el.textContent = 'Aucune classe sauvegardée.'; return; }
+        data.forEach((c, idx)=>{
+          const b = document.createElement('div');
+          b.className='badge';
+          b.textContent = `${c.name} — ${c.rows.length} élèves`;
+          const loadBtn = document.createElement('button'); loadBtn.textContent='Charger';
+          loadBtn.style.marginLeft='8px'; loadBtn.addEventListener('click', ()=>{
+            cleanedRows = c.rows || [];
+            document.getElementById('className').value = c.name;
+            setMsg('previewMsg','Classe chargée depuis le stockage.', 'success');
+            renderPreview();
+          });
+          const delBtn = document.createElement('button'); delBtn.textContent='Suppr';
+          delBtn.style.marginLeft='6px'; delBtn.addEventListener('click', ()=>{
+            if (!confirm(`Supprimer la classe "${c.name}" ?`)) return;
+            const raw2 = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            raw2.splice(idx,1);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(raw2));
+            loadSavedList();
+            setMsg('previewMsg','Classe supprimée.', 'success');
+          });
+          b.appendChild(loadBtn); b.appendChild(delBtn);
+          el.appendChild(b);
+        });
+      } catch(e){ el.textContent='Erreur lecture stockage'; }
+    }
+
+    // save class
+    document.getElementById('importBtn').addEventListener('click', ()=>{
+      const name = (document.getElementById('className').value || '').trim();
+      if (!name) { setMsg('previewMsg','Donne un nom à la classe avant de sauvegarder.','error'); return; }
+      if (!cleanedRows || cleanedRows.length===0) { setMsg('previewMsg','Aucune donnée à sauvegarder.','error'); return; }
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      // overwrite if same name
+      const existingIndex = arr.findIndex(c=>c.name===name);
+      const payload = { name, importedAt: new Date().toISOString(), rows: cleanedRows };
+      if (existingIndex>=0) arr[existingIndex] = payload;
+      else arr.push(payload);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+      loadSavedList();
+      setMsg('previewMsg',`Classe "${name}" sauvegardée (${cleanedRows.length} élèves).`, 'success');
+    });
+
+    // export CSV
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      if (!cleanedRows || cleanedRows.length===0) { setMsg('previewMsg','Aucune donnée à exporter.','error'); return; }
+      const cols = Object.keys(cleanedRows[0]);
+      const csv = [cols.join(',')].concat(cleanedRows.map(r=>{
+        return cols.map(c=>{
+          const v = r[c] ?? '';
+          if (typeof v === 'string' && (v.includes(',') || v.includes('"') || v.includes('\n'))) {
+            return '"' + v.replace(/"/g,'""') + '"';
+          }
+          return v;
+        }).join(',');
+      })).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'classe_export.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setMsg('previewMsg','Export déclenché.', 'success');
+    });
+
+    // clear storage (all saved classes)
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      if (!confirm('Effacer toutes les classes sauvegardées localement ?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      loadSavedList();
+      setMsg('previewMsg','Stockage local effacé.', 'success');
+    });
+
+    // initial
+    loadSavedList();
+  </script>
+</body>
+</html>
